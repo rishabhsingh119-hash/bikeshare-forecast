@@ -118,6 +118,7 @@ def test_station_info_picks_english_name():
             "stations": [
                 {
                     "station_id": "a",
+                    "short_name": "6140.10",
                     "lat": 40.7,
                     "lon": -74.0,
                     "capacity": 31,
@@ -133,3 +134,4 @@ def test_station_info_picks_english_name():
 
     assert df["name"][0] == "W 52 St"
     assert df["capacity"][0] == 31
+    assert df["short_name"][0] == "6140.10"

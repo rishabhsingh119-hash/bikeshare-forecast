@@ -90,6 +90,8 @@ def parse_station_info(info_json, snapshot_time, language="en"):
                 "snapshot_time": snapshot_time,
                 "station_id": str(station["station_id"]),
                 "name": get_text(station.get("name"), language),
+                # The station ID used in Citi Bike's trip history files
+                "short_name": get_text(station.get("short_name"), language),
                 "lat": station.get("lat"),
                 "lon": station.get("lon"),
                 "capacity": station.get("capacity"),
