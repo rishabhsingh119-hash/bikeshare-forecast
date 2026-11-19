@@ -1,0 +1,27 @@
+# Keeps the collector running 24/7 on the server.
+# It starts when the server boots and restarts by itself if it crashes.
+#
+# Install on the server:
+#   sudo cp deploy/bikeshare-collector.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now bikeshare-collector
+
+[Unit]
+Description=Bike-share snapshot collector
+# Wait until the server has internet before starting
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/bikeshare-forecast
+ExecStart=/home/ubuntu/bikeshare-forecast/.venv/bin/python src/collector.py
+# Show log messages immediately instead of holding them back
+Environment=PYTHONUNBUFFERED=1
+# If it ever stops, wait 30 seconds and start it again
+Restart=always
+RestartSec=30
+
+[Install]
+# Start it automatically when the server boots
+WantedBy=multi-user.target

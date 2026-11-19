@@ -1,0 +1,16 @@
+# Project settings.
+# Anything you put in .env overrides these.
+
+[project]
+timezone = "America/New_York"   # the city's local time zone
+
+[feed]
+gbfs_url = "https://gbfs.citibikenyc.com/gbfs/2.3/gbfs.json"   # Citi Bike, New York
+
+[collector]
+poll_interval = 300      # seconds between snapshots (5 minutes)
+save_raw_json = true     # also keep the original JSON, in case we need to re-read it
+
+[paths]
+raw_data = "data/raw"
+processed_data = "data/processed"

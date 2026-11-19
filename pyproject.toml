@@ -1,0 +1,28 @@
+[project]
+name = "bikeshare-forecast"
+version = "0.1.0"
+description = "Predicting when bike-share stations will run empty or full"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pandas>=3.1.1",
+    "pyarrow>=26.0.1",
+    "python-dotenv>=1.2.4",
+    "requests>=2.34.2",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.7.0",
+    "pytest>=9.2.0",
+    "ruff>=0.17.5",
+]
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP"]
