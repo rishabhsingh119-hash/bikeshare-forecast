@@ -22,6 +22,8 @@ GBFS_URL = os.getenv("GBFS_URL") or settings["feed"]["gbfs_url"]
 POLL_INTERVAL = int(os.getenv("POLL_INTERVAL") or settings["collector"]["poll_interval"])
 SAVE_RAW_JSON = settings["collector"]["save_raw_json"]
 TIMEZONE = settings["project"]["timezone"]
+WEATHER_LATITUDE = settings["weather"]["latitude"]
+WEATHER_LONGITUDE = settings["weather"]["longitude"]
 
 RAW_DATA_DIR = PROJECT_ROOT / settings["paths"]["raw_data"]
 PROCESSED_DATA_DIR = PROJECT_ROOT / settings["paths"]["processed_data"]
@@ -33,3 +35,4 @@ if __name__ == "__main__":
     print("Poll interval:", POLL_INTERVAL, "seconds")
     print("Raw data dir: ", RAW_DATA_DIR)
     print("Time zone:    ", TIMEZONE)
+    print("Weather at:   ", WEATHER_LATITUDE, WEATHER_LONGITUDE)

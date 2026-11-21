@@ -81,6 +81,8 @@ def test_hourly_counts():
     assert counts.loc[("B", at_8am), "arrivals"] == 1
     assert counts.loc[("A", at_9am), "arrivals"] == 1
     assert counts["arrivals"].sum() == 2  # r3 has no end station, so no arrival
+
+
 class FakeDownload:
     """Pretends to be a requests response for a file download."""
 
@@ -107,7 +109,7 @@ def test_download_tries_again_after_a_stall(monkeypatch, tmp_path):
     path = download_month("202602")
 
     assert path.read_bytes() == b"first piece second piece"  # the full file, not half
-    assert not list(tmp_path.glob("*.tmp"))                  # no leftover temp file
+    assert not list(tmp_path.glob("*.tmp"))  # no leftover temp file
 
 
 def test_missing_month_is_skipped(monkeypatch, tmp_path):

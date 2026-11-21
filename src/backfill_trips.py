@@ -105,19 +105,23 @@ def to_utc(local_times):
 def hourly_counts(trips):
     """Count departures and arrivals for every station in every hour."""
     departures = (
-        pd.DataFrame({
-            "station_id": trips["start_station_id"],
-            "hour": to_utc(trips["started_at"]).dt.floor("h"),
-        })
+        pd.DataFrame(
+            {
+                "station_id": trips["start_station_id"],
+                "hour": to_utc(trips["started_at"]).dt.floor("h"),
+            }
+        )
         .dropna()
         .value_counts()
         .rename("departures")
     )
     arrivals = (
-        pd.DataFrame({
-            "station_id": trips["end_station_id"],
-            "hour": to_utc(trips["ended_at"]).dt.floor("h"),
-        })
+        pd.DataFrame(
+            {
+                "station_id": trips["end_station_id"],
+                "hour": to_utc(trips["ended_at"]).dt.floor("h"),
+            }
+        )
         .dropna()
         .value_counts()
         .rename("arrivals")
@@ -137,8 +141,10 @@ def check_station_ids(counts):
 
     trip_ids = set(counts["station_id"])
     matched = len(trip_ids & live_ids)
-    print(f"\n{matched} of {len(trip_ids)} trip stations match a live station "
-          f"({matched / len(trip_ids):.0%})")
+    print(
+        f"\n{matched} of {len(trip_ids)} trip stations match a live station "
+        f"({matched / len(trip_ids):.0%})"
+    )
 
 
 def main():

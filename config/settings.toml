@@ -14,3 +14,8 @@ save_raw_json = true     # also keep the original JSON, in case we need to re-re
 [paths]
 raw_data = "data/raw"
 processed_data = "data/processed"
+
+
+[weather]
+latitude = 40.75      # Midtown Manhattan, the middle of the Citi Bike area
+longitude = -73.98
