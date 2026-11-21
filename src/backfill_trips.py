@@ -7,9 +7,12 @@
 #
 # Output, one file per month:
 #   data/processed/trips_hourly/trips_hourly_202510.parquet
+#
+# Each month's zip is deleted once it's processed, since it can be downloaded again.
 
 import argparse
 import io
+import time
 import zipfile
 
 import pandas as pd
@@ -32,7 +35,7 @@ def month_list(start, end):
     return [month.strftime("%Y%m") for month in months]
 
 
-def download_month(month):
+def download_month(month, retries=3):
     """Download one month's zip file, unless we already have it. Returns its path."""
     path = TRIPS_DIR / f"{month}-citibike-tripdata.zip"
     if path.exists():
@@ -40,21 +43,31 @@ def download_month(month):
         return path
 
     url = f"{TRIPDATA_URL}/{month}-citibike-tripdata.zip"
-    print(f"{month}: downloading {url}")
-    response = requests.get(url, stream=True, timeout=60)
-    if response.status_code in (403, 404):
-        print(f"{month}: not published yet, skipping")
-        return None
-    response.raise_for_status()
+    for attempt in range(1, retries + 1):
+        try:
+            print(f"{month}: downloading {url}")
+            response = requests.get(url, stream=True, timeout=60)
+            if response.status_code in (403, 404):
+                print(f"{month}: not published yet, skipping")
+                return None
+            response.raise_for_status()
 
-    # Download in pieces (the files are hundreds of MB), into a temp file first
-    TRIPS_DIR.mkdir(parents=True, exist_ok=True)
-    temp_path = path.with_suffix(".tmp")
-    with open(temp_path, "wb") as f:
-        for chunk in response.iter_content(chunk_size=1024 * 1024):
-            f.write(chunk)
-    temp_path.replace(path)
-    return path
+            # Download in pieces (the files are hundreds of MB), into a temp file first
+            TRIPS_DIR.mkdir(parents=True, exist_ok=True)
+            temp_path = path.with_suffix(".tmp")
+            with open(temp_path, "wb") as f:
+                for chunk in response.iter_content(chunk_size=1024 * 1024):
+                    f.write(chunk)
+            temp_path.replace(path)
+            return path
+
+        except requests.RequestException as error:
+            # Big downloads sometimes stall. Wait a bit and start that file again.
+            if attempt == retries:
+                raise
+            wait = 10 * attempt
+            print(f"{month}: download failed ({error}). Trying again in {wait}s")
+            time.sleep(wait)
 
 
 def read_trips(zip_path):
@@ -92,23 +105,19 @@ def to_utc(local_times):
 def hourly_counts(trips):
     """Count departures and arrivals for every station in every hour."""
     departures = (
-        pd.DataFrame(
-            {
-                "station_id": trips["start_station_id"],
-                "hour": to_utc(trips["started_at"]).dt.floor("h"),
-            }
-        )
+        pd.DataFrame({
+            "station_id": trips["start_station_id"],
+            "hour": to_utc(trips["started_at"]).dt.floor("h"),
+        })
         .dropna()
         .value_counts()
         .rename("departures")
     )
     arrivals = (
-        pd.DataFrame(
-            {
-                "station_id": trips["end_station_id"],
-                "hour": to_utc(trips["ended_at"]).dt.floor("h"),
-            }
-        )
+        pd.DataFrame({
+            "station_id": trips["end_station_id"],
+            "hour": to_utc(trips["ended_at"]).dt.floor("h"),
+        })
         .dropna()
         .value_counts()
         .rename("arrivals")
@@ -128,10 +137,8 @@ def check_station_ids(counts):
 
     trip_ids = set(counts["station_id"])
     matched = len(trip_ids & live_ids)
-    print(
-        f"\n{matched} of {len(trip_ids)} trip stations match a live station "
-        f"({matched / len(trip_ids):.0%})"
-    )
+    print(f"\n{matched} of {len(trip_ids)} trip stations match a live station "
+          f"({matched / len(trip_ids):.0%})")
 
 
 def main():
@@ -141,20 +148,31 @@ def main():
     args = parser.parse_args()
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    counts = None
+    last_output = None
 
     for month in month_list(args.start, args.end):
+        output_path = OUTPUT_DIR / f"trips_hourly_{month}.parquet"
+        if output_path.exists():
+            # Already done on an earlier run, so don't redo the work
+            print(f"{month}: already processed")
+            last_output = output_path
+            continue
+
         zip_path = download_month(month)
         if zip_path is None:
             continue
 
         trips = read_trips(zip_path)
         counts = hourly_counts(trips)
-        counts.to_parquet(OUTPUT_DIR / f"trips_hourly_{month}.parquet", index=False)
+        counts.to_parquet(output_path, index=False)
         print(f"{month}: {len(trips):,} trips -> {len(counts):,} station-hours")
+        last_output = output_path
 
-    if counts is not None:
-        check_station_ids(counts)
+        # The zip can be downloaded again any time, so free up the disk space
+        zip_path.unlink()
+
+    if last_output is not None:
+        check_station_ids(pd.read_parquet(last_output))
 
 
 if __name__ == "__main__":

@@ -1,8 +1,10 @@
 import zipfile
 
 import pandas as pd
+import requests
 
-from backfill_trips import hourly_counts, month_list, read_trips, to_utc
+import backfill_trips
+from backfill_trips import download_month, hourly_counts, month_list, read_trips, to_utc
 
 # The header of Citi Bike's trip history CSVs
 HEADER = (
@@ -79,3 +81,37 @@ def test_hourly_counts():
     assert counts.loc[("B", at_8am), "arrivals"] == 1
     assert counts.loc[("A", at_9am), "arrivals"] == 1
     assert counts["arrivals"].sum() == 2  # r3 has no end station, so no arrival
+class FakeDownload:
+    """Pretends to be a requests response for a file download."""
+
+    def __init__(self, status_code=200, stall=False):
+        self.status_code = status_code
+        self.stall = stall
+
+    def raise_for_status(self):
+        pass
+
+    def iter_content(self, chunk_size):
+        yield b"first piece "
+        if self.stall:
+            raise requests.ConnectionError("Read timed out.")
+        yield b"second piece"
+
+
+def test_download_tries_again_after_a_stall(monkeypatch, tmp_path):
+    responses = [FakeDownload(stall=True), FakeDownload()]
+    monkeypatch.setattr(backfill_trips, "TRIPS_DIR", tmp_path)
+    monkeypatch.setattr(backfill_trips.requests, "get", lambda *a, **kw: responses.pop(0))
+    monkeypatch.setattr(backfill_trips.time, "sleep", lambda seconds: None)
+
+    path = download_month("202602")
+
+    assert path.read_bytes() == b"first piece second piece"  # the full file, not half
+    assert not list(tmp_path.glob("*.tmp"))                  # no leftover temp file
+
+
+def test_missing_month_is_skipped(monkeypatch, tmp_path):
+    monkeypatch.setattr(backfill_trips, "TRIPS_DIR", tmp_path)
+    monkeypatch.setattr(backfill_trips.requests, "get", lambda *a, **kw: FakeDownload(404))
+
+    assert download_month("209901") is None
