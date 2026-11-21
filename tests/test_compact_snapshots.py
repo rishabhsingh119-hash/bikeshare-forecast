@@ -6,11 +6,13 @@ from compact_snapshots import compact_day, finished_days
 
 def snapshot(time, station_ids):
     """A tiny fake snapshot: a few stations at one moment."""
-    return pd.DataFrame({
-        "snapshot_time": pd.Timestamp(time, tz="UTC"),
-        "station_id": station_ids,
-        "bikes_available": 5,
-    })
+    return pd.DataFrame(
+        {
+            "snapshot_time": pd.Timestamp(time, tz="UTC"),
+            "station_id": station_ids,
+            "bikes_available": 5,
+        }
+    )
 
 
 def test_finished_days_leaves_out_today(monkeypatch, tmp_path):
