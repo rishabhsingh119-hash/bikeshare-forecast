@@ -4,7 +4,14 @@ import pandas as pd
 import requests
 
 import backfill_trips
-from backfill_trips import download_month, hourly_counts, month_list, read_trips, to_utc
+from backfill_trips import (
+    download_month,
+    fix_station_ids,
+    hourly_counts,
+    month_list,
+    read_trips,
+    to_utc,
+)
 
 # The header of Citi Bike's trip history CSVs
 HEADER = (
@@ -117,3 +124,11 @@ def test_missing_month_is_skipped(monkeypatch, tmp_path):
     monkeypatch.setattr(backfill_trips.requests, "get", lambda *a, **kw: FakeDownload(404))
 
     assert download_month("209901") is None
+
+
+def test_fix_station_ids_puts_back_the_missing_zero():
+    ids = pd.Series(["5980.1", "6140.05", "5329.10", "JC115", None])
+    fixed = fix_station_ids(ids)
+
+    assert list(fixed[:4]) == ["5980.10", "6140.05", "5329.10", "JC115"]
+    assert pd.isna(fixed[4])

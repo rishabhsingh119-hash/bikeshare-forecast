@@ -87,8 +87,20 @@ def read_trips(zip_path):
         raise ValueError(f"No CSV files found in {zip_path}")
 
     trips = pd.concat(tables, ignore_index=True)
+    trips["start_station_id"] = fix_station_ids(trips["start_station_id"])
+    trips["end_station_id"] = fix_station_ids(trips["end_station_id"])
+
     # Some zips contain the same trips twice, so keep each ride only once
     return trips.drop_duplicates("ride_id")
+
+
+def fix_station_ids(ids):
+    """Put back the last zero that some files drop from station IDs ("5980.10" -> "5980.1").
+
+    Citi Bike's station IDs always have two digits after the dot. Without this fix,
+    one station would show up under two different IDs.
+    """
+    return ids.str.replace(r"^(\d+\.\d)$", r"\g<1>0", regex=True)
 
 
 def to_utc(local_times):
