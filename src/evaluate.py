@@ -52,3 +52,13 @@ def print_scores(results):
     """results: {model name: scores}. Prints one row per model."""
     table = pd.DataFrame(results).T
     print(table.round(3).to_string())
+
+def calibration_table(answers, risk, groups=10):
+    """Sort predictions from safest to riskiest, split them into equal-sized groups,
+    and compare each group's average predicted risk with how often trouble really happened.
+
+    For honest probabilities, the two columns should be close in every group.
+    """
+    df = pd.DataFrame({"predicted": np.asarray(risk, dtype=float), "actual": np.asarray(answers)})
+    df["group"] = pd.qcut(df["predicted"].rank(method="first"), groups, labels=False) + 1
+    return df.groupby("group")[["predicted", "actual"]].mean()

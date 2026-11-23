@@ -1,8 +1,9 @@
 import numpy as np
 import pandas as pd
+import pytest
 
 from baselines import few_bikes_or_docks, few_bikes_or_docks_after_usual_demand
-from evaluate import only_fine_now, score, split_by_time
+from evaluate import calibration_table, only_fine_now, score, split_by_time
 
 
 def test_split_by_time_keeps_a_gap_before_the_test_days():
@@ -55,3 +56,15 @@ def test_rules_rank_nearly_empty_and_nearly_full_stations_as_risky():
     assert simple[0] > simple[1] and simple[2] > simple[1]  # nearly empty, nearly full
     # The middle station usually loses 10 bikes next hour, so it becomes the riskiest
     assert with_demand[1] > with_demand[0]
+
+
+def test_calibration_table_compares_predicted_with_actual():
+    # Predictions that are exactly right on average: 10% and 50%
+    risk = [0.1] * 100 + [0.5] * 100
+    answers = [1] * 10 + [0] * 90 + [1] * 50 + [0] * 50
+
+    table = calibration_table(answers, risk, groups=2)
+
+    # approx allows for tiny rounding differences in decimal maths
+    assert list(table["predicted"]) == pytest.approx([0.1, 0.5])
+    assert list(table["actual"]) == pytest.approx([0.1, 0.5])
